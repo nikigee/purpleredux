@@ -168,7 +168,7 @@ module.exports = {
             .setTitle('🎲 Dice Roll!')
             .setDescription(`Your roll is ${diceInput}. Good luck! <33`)
             .setColor(0x6a0dad)
-            .setThumbnail('https://i.imgur.com/weMoS67.jpeg');
+            .setThumbnail('https://i.imgur.com/MQo7HLm.jpeg');
 
         if (roll.total === roll.max) {
             embed.setFooter({ text: 'you got it 🥳' });
@@ -184,7 +184,7 @@ module.exports = {
             roll.list.forEach((v) => {
                 embed.addFields({ name: `${v.string}:`, value: `${v.list.join(' + ')} = ${v.total}`, inline: true });
             });
-            if (roll.compText !== roll.total) {
+            if (roll.compText != roll.total) {
                 embed.addFields({ name: 'Total Roll:', value: `${roll.compText} = ${roll.total}` });
             } else {
                 embed.addFields({ name: 'Total Roll:', value: String(roll.total) });

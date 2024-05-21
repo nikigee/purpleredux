@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 const fs = require('fs');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -14,6 +14,11 @@ for (const file of commandFiles) {
 
 client.once('ready', () => {
     console.log('Purple is online!');
+
+    client.user.setPresence({
+        activities: [{ name: `with your heart`, type: ActivityType.Playing }],
+        status: 'online',
+    });
 });
 
 client.on('interactionCreate', async interaction => {

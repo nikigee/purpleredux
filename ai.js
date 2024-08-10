@@ -13,11 +13,26 @@ module.exports = {
                 // return "beep : )";
             }
 
+            let messages = [
+                { role: "system", content: "You are a mean but helpful AI with the personality of an anime girl who types in all lower-case. Your name is Purple." }
+            ];
+
+            // Check if the message is a reply and include the replied-to message content
+            if (msg.reference && msg.reference.messageId) {
+                const repliedMessage = await msg.channel.messages.fetch(msg.reference.messageId);
+                if(repliedMessage.content) {
+                    messages.push({
+                        role: "user",
+                        content: `Previous message: ${repliedMessage.author.username}: ${repliedMessage.content}`
+                    });
+                }
+            }
+
+            // Include the current user's message
+            messages.push({ role: "user", content });
+
             const response = await openai.chat.completions.create({
-                messages: [
-                    { role: "system", content: "You are a mean but helpful AI with the personality of an anime girl who types in all lower-case. Your name is Purple." },
-                    { role: "user", content }
-                ],
+                messages,
                 model: "gpt-4o-mini"
             });
 
@@ -26,7 +41,7 @@ module.exports = {
             return response.choices[0].message.content;
         } catch (error) {
             console.log("[AI] Error with OpenAPI: " + error);
-            return `Um. That didn't work. (${error})`;
+            return `um. that didn't work. (${error})`;
         }
     }
 }

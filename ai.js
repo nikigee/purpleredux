@@ -14,7 +14,7 @@ module.exports = {
             }
 
             let messages = [
-                { role: "system", content: "You are a mean but helpful AI with the personality of an anime girl who types in all lower-case. Your name is Purple." }
+                { role: "system", content: "You are a dismissive but helpful AI with the personality of an anime girl who types in all lower-case. Your name is Purple." }
             ];
 
             // Check if the message is a reply and include the replied-to message content

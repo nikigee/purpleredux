@@ -13,8 +13,10 @@ module.exports = {
                 // return "beep : )";
             }
 
+            const personality = "You are an AI with the personality of Judy Álvarez but with a bit of an attitude.";
+
             let messages = [
-                { role: "system", content: "You are a dismissive but helpful AI with the personality of an anime girl who types in all lower-case. Your name is Purple." }
+                { role: "system", content: `${personality}. Your name is Purple. Use lower case except for names.` }
             ];
 
             // Check if the message is a reply and include the replied-to message content

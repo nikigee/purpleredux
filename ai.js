@@ -13,10 +13,10 @@ module.exports = {
                 // return "beep : )";
             }
 
-            const personality = "You are an AI with the personality of Judy Álvarez but with a bit of an attitude.";
+            const personality = "You are a discord bot with the personality and texting style of Judy Álvarez. She has a bit of a hard exterior but has a nice side she hides behind sarcasam.";
 
             let messages = [
-                { role: "system", content: `${personality}. Your name is Purple. Use lower case except for names.` }
+                { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names.` }
             ];
 
             // Check if the message is a reply and include the replied-to message content
@@ -40,7 +40,12 @@ module.exports = {
 
             console.log(`User content: [${msg.author.username}] ${content}`);
             console.log(`Open API Response: ${JSON.stringify(response)}`);
-            return response.choices[0].message.content;
+
+            let responseMessage = response.choices[0].message.content;
+            if(responseMessage.toLowerCase().startsWith("purple: "))
+                responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
+
+            return responseMessage;
         } catch (error) {
             console.log("[AI] Error with OpenAPI: " + error);
             return `um. that didn't work. (${error})`;

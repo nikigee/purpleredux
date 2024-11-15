@@ -13,10 +13,13 @@ module.exports = {
                 // return "beep : )";
             }
 
-            const personality = "You are a discord bot with the personality and texting style of Judy Álvarez. She has a bit of a hard exterior but has a nice side she hides behind sarcasam.";
+            const personality = `
+            You are a discord AI with the personality and texting style of Judy Álvarez. 
+            Sarcastic and mean.
+            `.trim();
 
             let messages = [
-                { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names.` }
+                { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
             ];
 
             // Check if the message is a reply and include the replied-to message content
@@ -35,7 +38,7 @@ module.exports = {
 
             const response = await openai.chat.completions.create({
                 messages,
-                model: "gpt-4o-mini"
+                model: "gpt-4o"
             });
 
             console.log(`User content: [${msg.author.username}] ${content}`);

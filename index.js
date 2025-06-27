@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, ActivityType, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType, EmbedBuilder, Colors } = require('discord.js');
 const { readdirSync } = require('fs');
 const ai = require('./ai');  // Import the AI module
 
@@ -7,6 +7,8 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 client.commands = new Collection();
 
 const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+const { Campaigns } = require("./campaigns");
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
@@ -77,20 +79,8 @@ client.on('messageCreate', async message => {
         if (message.guild)
             message.delete();
 
-        const exampleEmbed = new EmbedBuilder()
-            .setColor('#000000')
-            .setTitle('The Death House')
-            .setDescription('There is a monster in our house. He is ancient. He is the land.')
-            .setThumbnail('https://spg-images.s3.us-west-1.amazonaws.com/1855211d-a6dd-45ef-8aef-656c325f8b5b')
-            .addFields(
-                { name: "GM", value: "Liam", inline: false },
-                { name: "Party Members", value: "Zeph, Herman Jägervordt, New Character (Fletcher)", inline: false },
-                { name: "Theme", value: "https://www.youtube.com/watch?v=eBHtQ07gvC0" }
-            )
-            .setTimestamp()
-            .setFooter({ text: '2023', iconURL: 'https://th.bing.com/th/id/OIP.8pCoix1aHHo_hvBGG0Dy-wAAAA?rs=1&pid=ImgDetMain' });
-
-        message.channel.send({ embeds: [exampleEmbed] });
+        message.channel.send({ embeds: [Campaigns[0]] });
+        message.channel.send({ embeds: [Campaigns[1]] });
     }
 });
 

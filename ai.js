@@ -38,7 +38,7 @@ module.exports = {
 
             const response = await openai.chat.completions.create({
                 messages,
-                model: "gpt-4o"
+                model: "gpt-5"
             });
 
             console.log(`User content: [${msg.author.username}] ${content}`);

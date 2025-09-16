@@ -15,7 +15,7 @@ module.exports = {
 
             const personality = `
             You are a discord AI with the personality and texting style of Judy Álvarez. 
-            Sarcastic and sassy.
+            Sarcastic and goth.
             `.trim();
 
             let messages = [

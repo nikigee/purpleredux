@@ -1,20 +1,11 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, ActivityType, EmbedBuilder, Colors } = require('discord.js');
-const { readdirSync } = require('fs');
-const ai = require('./ai');  // Import the AI module
+import 'dotenv/config';
+import { ActivityType } from 'discord.js';
+import { execute } from './ai.js';  // Import the AI module
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.DirectMessages] });
-client.commands = new Collection();
+import { client } from './components/purpleClient.js'; // set up client object and login
 
-const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
 
-const { Campaigns } = require("./campaigns");
-
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.data.name, command);
-}
-
+// on ready
 client.once('clientReady', () => {
     console.log('Purple is online!');
 
@@ -22,8 +13,13 @@ client.once('clientReady', () => {
         activities: [{ name: `with your heart`, type: ActivityType.Playing }],
         status: 'online',
     });
+
+    // run cron jobs
+    import('./cron-jobs.js');
 });
 
+
+// WATCHERS
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
@@ -40,6 +36,8 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Developer only commands
+import { Campaigns } from "./config/campaigns.js"; // grab campaign data
+
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
@@ -48,7 +46,7 @@ client.on('messageCreate', async message => {
         const request = message.content.replace(`<@${client.user.id}>`, '').trim();
         if (request.length > 0) {
             // Call the AI function from ai.js
-            const aiResponse = await ai.execute(request, message);
+            const aiResponse = await execute(request, message);
 
             message.reply(aiResponse);
         }
@@ -83,5 +81,3 @@ client.on('messageCreate', async message => {
         message.channel.send({ embeds: [Campaigns[1]] });
     }
 });
-
-client.login(process.env.DISCORD_TOKEN);

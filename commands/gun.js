@@ -1,5 +1,5 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder, Colors } = require('discord.js');
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { EmbedBuilder, Colors } from 'discord.js';
 
 const THUMBNAILS = {
     p: 'https://cdn.shopify.com/s/files/1/1809/3169/products/untitled_7_of_43_1200x1200.jpg?v=1585167792',
@@ -45,59 +45,56 @@ const RELIABILITY = {
     default: '❓??'
 };
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('gun')
-        .setDescription('Translates a Cyberpunk gun\'s Weapon Code into something more readable.')
-        .addStringOption(option =>
-            option.setName('code')
-                .setDescription('The weapon code to translate')
-                .setRequired(true)),
-    async execute(interaction) {
-        const code = interaction.options.getString('code');
-        const contentArgs = code ? code.split(' ') : [];
+export const data = new SlashCommandBuilder()
+    .setName('gun')
+    .setDescription('Translates a Cyberpunk gun\'s Weapon Code into something more readable.')
+    .addStringOption(option => option.setName('code')
+        .setDescription('The weapon code to translate')
+        .setRequired(true));
+export async function execute(interaction) {
+    const code = interaction.options.getString('code');
+    const contentArgs = code ? code.split(' ') : [];
 
-        if (contentArgs.length < 9) {
-            return interaction.reply({ content: 'Format is invalid! Ensure the weapon code is properly formatted.', ephemeral: true });
-        }
+    if (contentArgs.length < 9) {
+        return interaction.reply({ content: 'Format is invalid! Ensure the weapon code is properly formatted.', ephemeral: true });
+    }
 
-        const gunType = contentArgs[0].toLowerCase();
-        const gun = GUN_TYPES[gunType] || GUN_TYPES.default;
-        const thumbnail = THUMBNAILS[gunType] || THUMBNAILS.default;
+    const gunType = contentArgs[0].toLowerCase();
+    const gun = GUN_TYPES[gunType] || GUN_TYPES.default;
+    const thumbnail = THUMBNAILS[gunType] || THUMBNAILS.default;
 
-        const conceal = CONCEALABILITY[contentArgs[2].toLowerCase()] || CONCEALABILITY.default;
+    const conceal = CONCEALABILITY[contentArgs[2].toLowerCase()] || CONCEALABILITY.default;
 
-        const availabilityData = AVAILABILITY[contentArgs[3].toLowerCase()] || AVAILABILITY.default;
-        const { description: availability, color } = availabilityData;
+    const availabilityData = AVAILABILITY[contentArgs[3].toLowerCase()] || AVAILABILITY.default;
+    const { description: availability, color } = availabilityData;
 
-        const reliability = RELIABILITY[contentArgs[7].toLowerCase()] || RELIABILITY.default;
+    const reliability = RELIABILITY[contentArgs[7].toLowerCase()] || RELIABILITY.default;
 
-        const embed = new EmbedBuilder()
-            .setDescription("This AI service will break down the gun code provided and translate it into human terms.")
-            .setTitle(`Weapon Code: ${code}`)
-            .setAuthor({ name: 'CYBERPUNK: Stagnation', iconURL: 'https://cdn.discordapp.com/attachments/549789418135879681/1047854457980981308/CyberpunkLogo3.png' })
-            .setFooter({ text: 'Militech™ - © All Rights Reserved 2083' })
-            .setThumbnail(thumbnail)
-            .setColor(color)
-            .addFields(
-                { name: 'Type', value: `${contentArgs[0].toUpperCase()} = ${gun}`, inline: true },
-                { name: 'Weapon Accuracy', value: `WA = ${contentArgs[1].toUpperCase()}`, inline: true },
-                { name: 'Concealability', value: `${contentArgs[2].toUpperCase()} = ${conceal}`, inline: true },
-                { name: 'Availability', value: `${contentArgs[3].toUpperCase()} = ${availability}`, inline: false },
-                { name: 'Damage/Ammo', value: `${contentArgs[4]}`, inline: true },
-                { name: 'Number of Shots', value: `${contentArgs[5]}`, inline: true },
-                { name: 'Rate of Fire', value: `${contentArgs[6]}`, inline: true },
-                { name: 'Reliability', value: `${contentArgs[7].toUpperCase()} = ${reliability}`, inline: true },
-                { name: 'Range', value: contentArgs[8], inline: true }
-            );
+    const embed = new EmbedBuilder()
+        .setDescription("This AI service will break down the gun code provided and translate it into human terms.")
+        .setTitle(`Weapon Code: ${code}`)
+        .setAuthor({ name: 'CYBERPUNK: Stagnation', iconURL: 'https://cdn.discordapp.com/attachments/549789418135879681/1047854457980981308/CyberpunkLogo3.png' })
+        .setFooter({ text: 'Militech™ - © All Rights Reserved 2083' })
+        .setThumbnail(thumbnail)
+        .setColor(color)
+        .addFields(
+            { name: 'Type', value: `${contentArgs[0].toUpperCase()} = ${gun}`, inline: true },
+            { name: 'Weapon Accuracy', value: `WA = ${contentArgs[1].toUpperCase()}`, inline: true },
+            { name: 'Concealability', value: `${contentArgs[2].toUpperCase()} = ${conceal}`, inline: true },
+            { name: 'Availability', value: `${contentArgs[3].toUpperCase()} = ${availability}`, inline: false },
+            { name: 'Damage/Ammo', value: `${contentArgs[4]}`, inline: true },
+            { name: 'Number of Shots', value: `${contentArgs[5]}`, inline: true },
+            { name: 'Rate of Fire', value: `${contentArgs[6]}`, inline: true },
+            { name: 'Reliability', value: `${contentArgs[7].toUpperCase()} = ${reliability}`, inline: true },
+            { name: 'Range', value: contentArgs[8], inline: true }
+        );
 
-        await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed] });
 
-        await interaction.followUp(`Or to put that in more simple terms:
+    await interaction.followUp(`Or to put that in more simple terms:
 - This weapon will modify your to-hit bonus by **${contentArgs[1].toUpperCase()}**.
 - You can target an enemy in a range of **${contentArgs[8]}**.
 - You can fire this weapon **${contentArgs[6]}** times max per round of combat.
 - You can fire this weapon **${contentArgs[5]}** times before you need to reload.
 - It will deal **${contentArgs[4]}** damage. This damage *is not modified* by your Dexterity or Strength like with normal D&D weapons.`);
-    },
-};
+}

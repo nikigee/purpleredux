@@ -1,6 +1,6 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { EmbedBuilder } = require('discord.js');
-const math = require('mathjs');
+import { SlashCommandBuilder } from '@discordjs/builders';
+import { EmbedBuilder } from 'discord.js';
+import { evaluate } from 'mathjs';
 
 class SingleDice {
     constructor(string = "d20") {
@@ -100,7 +100,7 @@ class DiceRoll {
         this.list.forEach((x) => {
             text = text.replace(x.string, x.max);
         });
-        return Number(math.evaluate(text));
+        return Number(evaluate(text));
     }
     get compText() {
         let text = this.dice;
@@ -110,14 +110,14 @@ class DiceRoll {
         return text;
     }
     get total() {
-        return Number(math.evaluate(this.compText));
+        return Number(evaluate(this.compText));
     }
     get expected() {
         let text = this.dice;
         this.list.forEach((x) => {
             text = text.replace(x.string, x.expected);
         });
-        return Number(math.evaluate(text));
+        return Number(evaluate(text));
     }
     roll() {
         this.generateList();
@@ -152,45 +152,42 @@ class DiceRoll {
     }
 }
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('roll')
-        .setDescription('Rolls some dice in the standard D&D format!')
-        .addStringOption(option =>
-            option.setName('dice')
-                .setDescription('The dice to roll in standard format (e.g., 2d10)')
-                .setRequired(true)),
-    async execute(interaction) {
-        const diceInput = interaction.options.getString('dice');
-        const roll = DiceRoll.x(diceInput);
+export const data = new SlashCommandBuilder()
+    .setName('roll')
+    .setDescription('Rolls some dice in the standard D&D format!')
+    .addStringOption(option => option.setName('dice')
+        .setDescription('The dice to roll in standard format (e.g., 2d10)')
+        .setRequired(true));
+export async function execute(interaction) {
+    const diceInput = interaction.options.getString('dice');
+    const roll = DiceRoll.x(diceInput);
 
-        const embed = new EmbedBuilder()
-            .setTitle('🎲 Dice Roll!')
-            .setDescription(`Your roll is ${diceInput}. Good luck! <33`)
-            .setColor(0x6a0dad)
-            .setThumbnail('https://i.imgur.com/MQo7HLm.jpeg');
+    const embed = new EmbedBuilder()
+        .setTitle('🎲 Dice Roll!')
+        .setDescription(`Your roll is ${diceInput}. Good luck! <33`)
+        .setColor(0x6a0dad)
+        .setThumbnail('https://i.imgur.com/MQo7HLm.jpeg');
 
-        if (roll.total === roll.max) {
-            embed.setFooter({ text: 'you got it 🥳' });
-        } else if (roll.total > (roll.expected + roll.expected / 2)) {
-            embed.setFooter({ text: 'nice roll 💕' });
-        } else if (roll.total < (roll.expected / 2)) {
-            embed.setFooter({ text: 'nice ;\')' });
-        }
+    if (roll.total === roll.max) {
+        embed.setFooter({ text: 'you got it 🥳' });
+    } else if (roll.total > (roll.expected + roll.expected / 2)) {
+        embed.setFooter({ text: 'nice roll 💕' });
+    } else if (roll.total < (roll.expected / 2)) {
+        embed.setFooter({ text: 'nice ;\')' });
+    }
 
-        if (roll.list.length === 1 && roll.list[0].stats.iterator === 1) {
-            embed.addFields({ name: 'Roll:', value: String(roll.total) });
+    if (roll.list.length === 1 && roll.list[0].stats.iterator === 1) {
+        embed.addFields({ name: 'Roll:', value: String(roll.total) });
+    } else {
+        roll.list.forEach((v) => {
+            embed.addFields({ name: `${v.string}:`, value: `${v.list.join(' + ')} = ${v.total}`, inline: true });
+        });
+        if (roll.compText != roll.total) {
+            embed.addFields({ name: 'Total Roll:', value: `${roll.compText} = ${roll.total}` });
         } else {
-            roll.list.forEach((v) => {
-                embed.addFields({ name: `${v.string}:`, value: `${v.list.join(' + ')} = ${v.total}`, inline: true });
-            });
-            if (roll.compText != roll.total) {
-                embed.addFields({ name: 'Total Roll:', value: `${roll.compText} = ${roll.total}` });
-            } else {
-                embed.addFields({ name: 'Total Roll:', value: String(roll.total) });
-            }
+            embed.addFields({ name: 'Total Roll:', value: String(roll.total) });
         }
+    }
 
-        await interaction.reply({ embeds: [embed] });
-    },
-};
+    await interaction.reply({ embeds: [embed] });
+}

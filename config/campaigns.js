@@ -1,5 +1,5 @@
-require('dotenv').config();
-const { EmbedBuilder, Colors } = require('discord.js');
+import 'dotenv/config';
+import { EmbedBuilder, Colors } from 'discord.js';
 
 const Eldervine = new EmbedBuilder()
     .setColor(Colors.Green)
@@ -29,4 +29,4 @@ const Styes = new EmbedBuilder()
     .setFooter({ text: '2025', iconURL: 'https://cdn.discordapp.com/attachments/425229440675479553/1388016769028853850/image.jpg?ex=685f72d9&is=685e2159&hm=cd0b048a83bc011004203516246cbb1acff786d69a591c9c35c96006d4380c3c&' });
 
 
-module.exports = { Campaigns: [Eldervine, Styes] };
+export const Campaigns = [Eldervine, Styes];

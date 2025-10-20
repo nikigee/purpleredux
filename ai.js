@@ -1,57 +1,55 @@
-require('dotenv').config();
-const OpenAI = require("openai");
+import 'dotenv/config';
+import OpenAI from "openai";
 
 const openai = new OpenAI({
     apiKey: process.env.OPEN_API
 });
 
-module.exports = {
-    async execute(content, msg) {
-        try {
-            // Return stock answer if a non-dev tries accessing this. (save on API tokens)
-            if (process.env.DEV_ID !== msg.author.id) {
-                // return "beep : )";
-            }
+export async function execute(content, msg) {
+    try {
+        // Return stock answer if a non-dev tries accessing this. (save on API tokens)
+        if (process.env.DEV_ID !== msg.author.id) {
+            // return "beep : )";
+        }
 
-            const personality = `
+        const personality = `
             You are a discord AI with the personality and texting style of Judy Álvarez. 
             Sarcastic and goth.
             `.trim();
 
-            let messages = [
-                { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
-            ];
+        let messages = [
+            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
+        ];
 
-            // Check if the message is a reply and include the replied-to message content
-            if (msg.reference && msg.reference.messageId) {
-                const repliedMessage = await msg.channel.messages.fetch(msg.reference.messageId);
-                if(repliedMessage.content) {
-                    messages.push({
-                        role: "user",
-                        content: `Previous message: ${repliedMessage.author.username}: ${repliedMessage.content}`
-                    });
-                }
+        // Check if the message is a reply and include the replied-to message content
+        if (msg.reference && msg.reference.messageId) {
+            const repliedMessage = await msg.channel.messages.fetch(msg.reference.messageId);
+            if (repliedMessage.content) {
+                messages.push({
+                    role: "user",
+                    content: `Previous message: ${repliedMessage.author.username}: ${repliedMessage.content}`
+                });
             }
-
-            // Include the current user's message
-            messages.push({ role: "user", content });
-
-            const response = await openai.chat.completions.create({
-                messages,
-                model: "gpt-5"
-            });
-
-            console.log(`User content: [${msg.author.username}] ${content}`);
-            console.log(`Open API Response: ${JSON.stringify(response)}`);
-
-            let responseMessage = response.choices[0].message.content;
-            if(responseMessage.toLowerCase().startsWith("purple: "))
-                responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
-
-            return responseMessage;
-        } catch (error) {
-            console.log("[AI] Error with OpenAPI: " + error);
-            return `um. that didn't work. (${error})`;
         }
+
+        // Include the current user's message
+        messages.push({ role: "user", content });
+
+        const response = await openai.chat.completions.create({
+            messages,
+            model: "gpt-5"
+        });
+
+        console.log(`User content: [${msg.author.username}] ${content}`);
+        console.log(`Open API Response: ${JSON.stringify(response)}`);
+
+        let responseMessage = response.choices[0].message.content;
+        if (responseMessage.toLowerCase().startsWith("purple: "))
+            responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
+
+        return responseMessage;
+    } catch (error) {
+        console.log("[AI] Error with OpenAPI: " + error);
+        return `um. that didn't work. (${error})`;
     }
 }

@@ -101,7 +101,24 @@ export async function execute(content, msg) {
         });
 
         console.log(`User content: [${msg.author.username}] ${content}`);
-        console.log(`Open API Response: ${JSON.stringify(response, null, 2)}`);
+
+        const truncated_response = {
+            "id": response.id,
+            "created_at": response.created_at,
+            "model": response.model,
+            "status": response.status,
+            "tools": response.tools,
+            "temperature": response.temperature,
+            "output_text": response.output_text,
+            "usage": {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+                "total_tokens": response.usage.total_tokens
+            },
+            "error": response.error
+        };
+
+        console.log(`Open API Response: ${JSON.stringify(truncated_response)}`);
 
         let responseMessage = response.output_text;
         if (responseMessage.toLowerCase().startsWith("purple: "))

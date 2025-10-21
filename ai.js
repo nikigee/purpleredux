@@ -5,6 +5,31 @@ const openai = new OpenAI({
     apiKey: process.env.OPEN_API
 });
 
+// function to extract all the text from an embed
+function parseEmbed(embed) {
+    const parts = [];
+    if (embed.title) parts.push(`title: ${embed.title}`);
+    if (embed.author && embed.author.name) parts.push(`author: ${embed.author.name}`);
+    if (embed.description) parts.push(`description: ${embed.description}`);
+    if (embed.fields && embed.fields.length) {
+        const fieldsText = embed.fields.map(f => `${f.name}: ${f.value}`).join(' | ');
+        parts.push(`fields: ${fieldsText}`);
+    }
+    if (embed.footer && embed.footer.text) parts.push(`footer: ${embed.footer.text}`);
+
+    return parts.join('\n');
+}
+
+function parseImage(attachments, description) {
+    const openAIContent = [{ type: "input_text", text: description }];
+    attachments.forEach((v) => {
+        if (v.contentType.includes("image")) {
+            openAIContent.push({ type: "input_image", image_url: v.url }); // add each image to the prompt
+        }
+    });
+    return openAIContent;
+}
+
 export async function execute(content, msg) {
     try {
         // Return stock answer if a non-dev tries accessing this. (save on API tokens)
@@ -37,17 +62,8 @@ export async function execute(content, msg) {
                 // include embeds if present
                 if (repliedMessage.embeds && repliedMessage.embeds.length > 0) {
                     repliedMessage.embeds.forEach((embed, i) => {
-                        const parts = [];
-                        if (embed.title) parts.push(`title: ${embed.title}`);
-                        if (embed.author && embed.author.name) parts.push(`author: ${embed.author.name}`);
-                        if (embed.description) parts.push(`description: ${embed.description}`);
-                        if (embed.fields && embed.fields.length) {
-                            const fieldsText = embed.fields.map(f => `${f.name}: ${f.value}`).join(' | ');
-                            parts.push(`fields: ${fieldsText}`);
-                        }
-                        if (embed.footer && embed.footer.text) parts.push(`footer: ${embed.footer.text}`);
+                        const embedText = parseEmbed(embed);
 
-                        const embedText = parts.join('\n');
                         if (embedText) {
                             messages.push({
                                 role: "user",
@@ -56,23 +72,38 @@ export async function execute(content, msg) {
                         }
                     });
                 }
+
+                if (repliedMessage.attachments.size > 0) {
+                    const openAIContent = parseImage(repliedMessage.attachments, repliedMessage.content); // turn discord attachments into a format chatgpt understands
+
+                    messages.push({ role: "user", content: openAIContent });
+                }
+
             } catch (err) {
                 console.log("[AI] failed to fetch replied message:", err);
             }
         }
 
-        // Include the current user's message
-        messages.push({ role: "user", content });
+        // Check if the message contains an image, and if so, get the AI to analyse it
+        // (may be a little cost intense so be sure to monitor usage and disable if too costly)
+        if (msg.attachments.size > 0) {
+            const openAIContent = parseImage(msg.attachments, content); // turn discord attachments into a format chatgpt understands
 
-        const response = await openai.chat.completions.create({
-            messages,
+            messages.push({ role: "user", content: openAIContent });
+        } else {
+            // Include the current user's message
+            messages.push({ role: "user", content });
+        }
+
+        const response = await openai.responses.create({
+            input: messages,
             model: "gpt-5"
         });
 
         console.log(`User content: [${msg.author.username}] ${content}`);
-        console.log(`Open API Response: ${JSON.stringify(response)}`);
+        console.log(`Open API Response: ${JSON.stringify(response, null, 2)}`);
 
-        let responseMessage = response.choices[0].message.content;
+        let responseMessage = response.output_text;
         if (responseMessage.toLowerCase().startsWith("purple: "))
             responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
 

@@ -45,10 +45,13 @@ client.on('messageCreate', async message => {
     if (message.mentions.has(client.user)) {
         const request = message.content.replace(`<@${client.user.id}>`, '').trim();
         if (request.length > 0) {
+            console.log(`🤔 Thinking of a response...`);
+            message.channel.sendTyping();
             // Call the AI function from ai.js
-            const aiResponse = await execute(request, message);
-
-            message.reply(aiResponse);
+            execute(request, message)
+                .then(r => {
+                    message.reply(r);
+                });
         }
     }
 

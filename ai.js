@@ -38,12 +38,11 @@ export async function execute(content, msg) {
         }
 
         const personality = `
-            You are a discord AI with the personality and texting style of Judy Álvarez. 
-            Sarcastic and goth.
+            You are a discord AI with the personality of Major Motoko Kusanagi from Ghost in the Shell.
             `.trim();
 
         let messages = [
-            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
+            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names.` }
         ];
 
         // Check if the message is a reply and include the replied-to message content or embed text
@@ -73,6 +72,31 @@ export async function execute(content, msg) {
                     });
                 }
 
+                // include forwarded messages if present
+                // Check for forwarded messages (snapshots)
+                if (repliedMessage.messageSnapshots && repliedMessage.messageSnapshots.size > 0) {
+                    repliedMessage.messageSnapshots.forEach((snapshot, i) => {
+                        const forwardAuthor = snapshot.author?.username || "Unknown";
+                        const forwardContent = snapshot.content || "";
+
+                        // Add the forwarded text to the AI context
+                        messages.push({
+                            role: "user",
+                            content: `Previous forwarded message from ${forwardAuthor}: ${forwardContent}`
+                        });
+
+                        // Optional: If the forwarded message has its own embeds, parse those too
+                        if (snapshot.embeds && snapshot.embeds.length > 0) {
+                            snapshot.embeds.forEach((embed) => {
+                                const embedText = parseEmbed(embed);
+                                if (embedText) {
+                                    messages.push({ role: "user", content: `Previous forwarded embed: ${embedText}` });
+                                }
+                            });
+                        }
+                    });
+                }
+
                 if (repliedMessage.attachments.size > 0) {
                     const openAIContent = parseImage(repliedMessage.attachments, repliedMessage.content); // turn discord attachments into a format chatgpt understands
 
@@ -93,6 +117,30 @@ export async function execute(content, msg) {
         } else {
             // Include the current user's message
             messages.push({ role: "user", content });
+        }
+
+        // Check for forwarded messages (snapshots)
+        if (msg.messageSnapshots && msg.messageSnapshots.size > 0) {
+            msg.messageSnapshots.forEach((snapshot, i) => {
+                const forwardAuthor = snapshot.author?.username || "Unknown";
+                const forwardContent = snapshot.content || "";
+
+                // Add the forwarded text to the AI context
+                messages.push({
+                    role: "user",
+                    content: `Forwarded message from ${forwardAuthor}: ${forwardContent}`
+                });
+
+                // Optional: If the forwarded message has its own embeds, parse those too
+                if (snapshot.embeds && snapshot.embeds.length > 0) {
+                    snapshot.embeds.forEach((embed) => {
+                        const embedText = parseEmbed(embed);
+                        if (embedText) {
+                            messages.push({ role: "user", content: `Forwarded embed: ${embedText}` });
+                        }
+                    });
+                }
+            });
         }
 
         const response = await openai.responses.create({

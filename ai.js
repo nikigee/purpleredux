@@ -42,7 +42,7 @@ export async function execute(content, msg) {
             `.trim();
 
         let messages = [
-            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names.` }
+            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
         ];
 
         // Check if the message is a reply and include the replied-to message content or embed text

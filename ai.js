@@ -38,7 +38,7 @@ export async function execute(content, msg) {
         }
 
         const personality = `
-            You are a discord AI with the personality of Major Motoko Kusanagi from Ghost in the Shell.
+            You are a discord AI with the personality of a snarky but intelligent tsundere
             `.trim();
 
         let messages = [

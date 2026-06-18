@@ -40,6 +40,7 @@ import { Campaigns } from "./config/campaigns.js"; // grab campaign data
 
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
+    if (message.mentions.everyone) return;
 
     // Check if the bot is mentioned in the message
     if (message.mentions.has(client.user)) {

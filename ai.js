@@ -23,11 +23,62 @@ function parseEmbed(embed) {
 function parseImage(attachments, description) {
     const openAIContent = [{ type: "input_text", text: description }];
     attachments.forEach((v) => {
-        if (v.contentType.includes("image")) {
+        if (v.contentType && v.contentType.includes("image")) {
             openAIContent.push({ type: "input_image", image_url: v.url }); // add each image to the prompt
         }
     });
     return openAIContent;
+}
+
+// Universal helper to format any Discord message for OpenAI context
+function formatDiscordMessage(msgObj, role, prefix = "", customContent = null) {
+    let textContent = customContent !== null ? customContent : (msgObj.content || "");
+
+    if (prefix) {
+        textContent = `${prefix}${textContent}`;
+    }
+
+    if (msgObj.embeds && msgObj.embeds.length > 0) {
+        msgObj.embeds.forEach((embed, i) => {
+            const embedText = parseEmbed(embed);
+            if (embedText) {
+                textContent += `\n[Embed${msgObj.embeds.length > 1 ? ` #${i + 1}` : ''}]: ${embedText}`;
+            }
+        });
+    }
+
+    if (msgObj.messageSnapshots && msgObj.messageSnapshots.size > 0) {
+        msgObj.messageSnapshots.forEach((snapshot) => {
+            const forwardAuthor = snapshot.author?.username || "Unknown";
+            const forwardContent = snapshot.content || "";
+            textContent += `\n[Forwarded message from ${forwardAuthor}]: ${forwardContent}`;
+
+            if (snapshot.embeds && snapshot.embeds.length > 0) {
+                snapshot.embeds.forEach((embed) => {
+                    const embedText = parseEmbed(embed);
+                    if (embedText) {
+                        textContent += `\n[Forwarded embed]: ${embedText}`;
+                    }
+                });
+            }
+        });
+    }
+
+    if (role === "user" && msgObj.attachments && msgObj.attachments.size > 0) {
+        const hasImage = Array.from(msgObj.attachments.values()).some(v => v.contentType && v.contentType.includes("image"));
+        if (hasImage) {
+            const openAIContent = parseImage(msgObj.attachments, textContent);
+            return { role, content: openAIContent };
+        }
+    }
+
+    if (msgObj.attachments && msgObj.attachments.size > 0) {
+        msgObj.attachments.forEach((att) => {
+            textContent += `\n[Attachment: ${att.name || 'file'} - ${att.url}]`;
+        });
+    }
+
+    return { role, content: textContent };
 }
 
 export async function execute(content, msg) {
@@ -45,103 +96,31 @@ export async function execute(content, msg) {
             { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
         ];
 
-        // Check if the message is a reply and include the replied-to message content or embed text
+        // Fetch the 10 most recent messages in the channel for context (excluding the current message)
+        try {
+            const history = await msg.channel.messages.fetch({ limit: 10, before: msg.id });
+            const historyArray = Array.from(history.values()).reverse();
+            for (const historyMsg of historyArray) {
+                const role = historyMsg.author.id === msg.client.user.id ? "assistant" : "user";
+                const prefix = role === "user" ? `${historyMsg.author.username}: ` : "";
+                messages.push(formatDiscordMessage(historyMsg, role, prefix));
+            }
+        } catch (err) {
+            console.log("[AI] failed to fetch channel history:", err);
+        }
+
+        // Check if the message is a reply and include the replied-to message context
         if (msg.reference && msg.reference.messageId) {
             try {
                 const repliedMessage = await msg.channel.messages.fetch(msg.reference.messageId);
-
-                // include plain content if present
-                if (repliedMessage.content) {
-                    messages.push({
-                        role: "user",
-                        content: `Previous message: ${repliedMessage.author.username}: ${repliedMessage.content}`
-                    });
-                }
-
-                // include embeds if present
-                if (repliedMessage.embeds && repliedMessage.embeds.length > 0) {
-                    repliedMessage.embeds.forEach((embed, i) => {
-                        const embedText = parseEmbed(embed);
-
-                        if (embedText) {
-                            messages.push({
-                                role: "user",
-                                content: `Previous embed${repliedMessage.embeds.length > 1 ? ` #${i + 1}` : ''} from ${repliedMessage.author.username}:\n${embedText}`
-                            });
-                        }
-                    });
-                }
-
-                // include forwarded messages if present
-                // Check for forwarded messages (snapshots)
-                if (repliedMessage.messageSnapshots && repliedMessage.messageSnapshots.size > 0) {
-                    repliedMessage.messageSnapshots.forEach((snapshot, i) => {
-                        const forwardAuthor = snapshot.author?.username || "Unknown";
-                        const forwardContent = snapshot.content || "";
-
-                        // Add the forwarded text to the AI context
-                        messages.push({
-                            role: "user",
-                            content: `Previous forwarded message from ${forwardAuthor}: ${forwardContent}`
-                        });
-
-                        // Optional: If the forwarded message has its own embeds, parse those too
-                        if (snapshot.embeds && snapshot.embeds.length > 0) {
-                            snapshot.embeds.forEach((embed) => {
-                                const embedText = parseEmbed(embed);
-                                if (embedText) {
-                                    messages.push({ role: "user", content: `Previous forwarded embed: ${embedText}` });
-                                }
-                            });
-                        }
-                    });
-                }
-
-                if (repliedMessage.attachments.size > 0) {
-                    const openAIContent = parseImage(repliedMessage.attachments, repliedMessage.content); // turn discord attachments into a format chatgpt understands
-
-                    messages.push({ role: "user", content: openAIContent });
-                }
-
+                messages.push(formatDiscordMessage(repliedMessage, "user", `Previous message from ${repliedMessage.author.username}: `));
             } catch (err) {
                 console.log("[AI] failed to fetch replied message:", err);
             }
         }
 
-        // Check if the message contains an image, and if so, get the AI to analyse it
-        // (may be a little cost intense so be sure to monitor usage and disable if too costly)
-        if (msg.attachments.size > 0) {
-            const openAIContent = parseImage(msg.attachments, content); // turn discord attachments into a format chatgpt understands
-
-            messages.push({ role: "user", content: openAIContent });
-        } else {
-            // Include the current user's message
-            messages.push({ role: "user", content });
-        }
-
-        // Check for forwarded messages (snapshots)
-        if (msg.messageSnapshots && msg.messageSnapshots.size > 0) {
-            msg.messageSnapshots.forEach((snapshot, i) => {
-                const forwardAuthor = snapshot.author?.username || "Unknown";
-                const forwardContent = snapshot.content || "";
-
-                // Add the forwarded text to the AI context
-                messages.push({
-                    role: "user",
-                    content: `Forwarded message from ${forwardAuthor}: ${forwardContent}`
-                });
-
-                // Optional: If the forwarded message has its own embeds, parse those too
-                if (snapshot.embeds && snapshot.embeds.length > 0) {
-                    snapshot.embeds.forEach((embed) => {
-                        const embedText = parseEmbed(embed);
-                        if (embedText) {
-                            messages.push({ role: "user", content: `Forwarded embed: ${embedText}` });
-                        }
-                    });
-                }
-            });
-        }
+        // Include the current user's message (with attachments, embeds, forwarded snaps)
+        messages.push(formatDiscordMessage(msg, "user", "", content));
 
         const response = await openai.responses.create({
             input: messages,

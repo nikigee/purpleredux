@@ -51,7 +51,15 @@ client.on('messageCreate', async message => {
             // Call the AI function from ai.js
             execute(request, message)
                 .then(r => {
-                    message.reply(r);
+                    if (r && r.isGif) {
+                        message.reply(r.url).then(() => {
+                            if (r.comment) {
+                                message.channel.send(r.comment);
+                            }
+                        });
+                    } else {
+                        message.reply(r);
+                    }
                 });
         }
     }

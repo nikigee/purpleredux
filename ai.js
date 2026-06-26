@@ -1,5 +1,13 @@
 import 'dotenv/config';
 import OpenAI from "openai";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const gifsData = JSON.parse(fs.readFileSync(path.join(__dirname, 'ai-kpop-gifs.json'), 'utf8'));
+
 
 const openai = new OpenAI({
     apiKey: process.env.OPEN_API
@@ -88,12 +96,21 @@ export async function execute(content, msg) {
             // return "beep : )";
         }
 
+        const gifDescriptions = Object.entries(gifsData)
+            .map(([key, data]) => `- ${key}: use for ${data.meaning.join(', ')}`)
+            .join('\n');
+
         const personality = `
-            You are a discord AI with the personality of a snarky but intelligent tsundere
+            You are a discord AI with the personality of a snarky but intelligent tsundere.
+            When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.
+            
+            If your intended response is simple enough and matches the meaning of one of the following GIFs, you MUST respond ONLY with the exact text "[GIF: <gif_id>]" instead of a normal text response.
+            Available GIFs:
+                ${gifDescriptions}
             `.trim();
 
         let messages = [
-            { role: "system", content: `${personality}. When asked, your name is Purple. Use lower case except for names. Keep responses short and concise.` }
+            { role: "system", content: personality }
         ];
 
         // Fetch the 10 most recent messages in the channel for context (excluding the current message)
@@ -148,8 +165,21 @@ export async function execute(content, msg) {
         console.log(`Open API Response: ${JSON.stringify(truncated_response)}`);
 
         let responseMessage = response.output_text;
-        if (responseMessage.toLowerCase().startsWith("purple: "))
+        if (responseMessage.toLowerCase().startsWith("purple: ")) {
             responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
+        }
+
+
+        // determine whether to respond with a gif or not
+        const gifMatch = responseMessage.match(/\[GIF:\s*([^\]]+)\]/i);
+        if (gifMatch && gifsData[gifMatch[1]]) {
+            const gifData = gifsData[gifMatch[1]];
+            let comment = "";
+            if (gifData.comment && typeof gifData.comment === 'string' && gifData.comment.trim() !== '') {
+                comment = gifData.comment;
+            }
+            return { isGif: true, url: gifData.url, comment: comment };
+        }
 
         return responseMessage;
     } catch (error) {

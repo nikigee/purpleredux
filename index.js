@@ -48,9 +48,14 @@ client.on('messageCreate', async message => {
         if (request.length > 0) {
             console.log(`🤔 Thinking of a response...`);
             message.channel.sendTyping();
+            const typingInterval = setInterval(() => {
+                message.channel.sendTyping();
+            }, 9000);
+
             // Call the AI function from ai.js
             execute(request, message)
                 .then(r => {
+                    clearInterval(typingInterval);
                     if (r && r.isGif) {
                         message.reply(r.url).then(() => {
                             if (r.comment) {
@@ -60,6 +65,10 @@ client.on('messageCreate', async message => {
                     } else {
                         message.reply(r);
                     }
+                })
+                .catch(err => {
+                    clearInterval(typingInterval);
+                    console.error("Error executing AI request:", err);
                 });
         }
     }

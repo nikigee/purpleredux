@@ -45,32 +45,30 @@ client.on('messageCreate', async message => {
     // Check if the bot is mentioned in the message
     if (message.mentions.has(client.user)) {
         const request = message.content.replace(`<@${client.user.id}>`, '').trim();
-        if (request.length > 0) {
-            console.log(`🤔 Thinking of a response...`);
+        console.log(`🤔 Thinking of a response...`);
+        message.channel.sendTyping();
+        const typingInterval = setInterval(() => {
             message.channel.sendTyping();
-            const typingInterval = setInterval(() => {
-                message.channel.sendTyping();
-            }, 9000);
+        }, 9000);
 
-            // Call the AI function from ai.js
-            execute(request, message)
-                .then(r => {
-                    clearInterval(typingInterval);
-                    if (r && r.isGif) {
-                        message.reply(r.url).then(() => {
-                            if (r.comment) {
-                                message.channel.send(r.comment);
-                            }
-                        });
-                    } else {
-                        message.reply(r);
-                    }
-                })
-                .catch(err => {
-                    clearInterval(typingInterval);
-                    console.error("Error executing AI request:", err);
-                });
-        }
+        // Call the AI function from ai.js
+        execute(request, message)
+            .then(r => {
+                clearInterval(typingInterval);
+                if (r && r.isGif) {
+                    message.reply(r.url).then(() => {
+                        if (r.comment) {
+                            message.channel.send(r.comment);
+                        }
+                    });
+                } else {
+                    message.reply(r);
+                }
+            })
+            .catch(err => {
+                clearInterval(typingInterval);
+                console.error("Error executing AI request:", err);
+            });
     }
 
     const prefix = "!p";

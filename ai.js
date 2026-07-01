@@ -110,7 +110,7 @@ export async function execute(content, msg) {
             `.trim();
 
         let messages = [
-            { role: "system", content: personality }
+            { role: "developer", content: personality }
         ];
 
         // Fetch the 10 most recent messages in the channel for context (excluding the current message)
@@ -141,7 +141,8 @@ export async function execute(content, msg) {
 
         const response = await openai.responses.create({
             input: messages,
-            model: "gpt-5"
+            reasoning: { effort: "low" },
+            model: "gpt-5.5"
         });
 
         console.log(`User content: [${msg.author.username}] ${content}`);

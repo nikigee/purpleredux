@@ -27,6 +27,7 @@ When asked, your name is Purple. Use lower case except for names. Keep responses
 Do not prefix your response with "purple:".
 
 If your intended response is simple enough and matches the meaning of one of the following GIFs, you MUST respond ONLY with the exact text "[GIF: <gif_id>]" instead of a normal text response.
+If a user asks for a GIF from the internet (or one not in the list below), search the web for a direct Tenor or Giphy GIF URL and respond with "[GIF: <url>]" (optionally followed by a short comment).
 Available GIFs:
 ${GIF_DESCRIPTIONS}
 `.trim();
@@ -205,14 +206,45 @@ function cleanResponseText(rawText = "") {
 	);
 }
 
+const DIRECT_GIF_URL_REGEX =
+	/https?:\/\/(?:(?:[\w-]+\.)?tenor\.com\/(?:view\/[^\s)\]]+|[^\s)\]]+\.gif)|(?:[\w-]+\.)?giphy\.com\/(?:gifs|media)\/[^\s)\]]+|[^\s)\]]+\.gifv?)(?:\?[^\s)\]]*)?/i;
+
+function cleanGifUrl(url) {
+	return url
+		.replace(/([?&])utm_source=openai(&|$)/i, (_, prefix, suffix) =>
+			suffix ? prefix : "",
+		)
+		.replace(/[?&]$/, "");
+}
+
 function parseBotResponse(responseMessage) {
 	// determine whether to respond with a gif or not
 	const gifMatch = responseMessage.match(/\[GIF:\s*([^\]]+)\]/i);
-	if (gifMatch && gifsData[gifMatch[1]]) {
-		const gifData = gifsData[gifMatch[1]];
-		const comment =
-			typeof gifData.comment === "string" ? gifData.comment.trim() : "";
-		return { isGif: true, url: gifData.url, comment };
+	if (gifMatch) {
+		const gifValue = gifMatch[1].trim();
+		if (gifsData[gifValue]) {
+			const gifData = gifsData[gifValue];
+			const comment =
+				typeof gifData.comment === "string" ? gifData.comment.trim() : "";
+			return { isGif: true, url: gifData.url, comment };
+		}
+
+		const urlMatch = gifValue.match(/https?:\/\/[^\s)\]]+/i);
+		if (urlMatch) {
+			const url = cleanGifUrl(urlMatch[0]);
+			const comment = responseMessage.replace(gifMatch[0], "").trim();
+			return { isGif: true, url, comment };
+		}
+	}
+
+	const directGifMatch = responseMessage.match(DIRECT_GIF_URL_REGEX);
+	if (directGifMatch) {
+		const url = cleanGifUrl(directGifMatch[0]);
+		const comment = responseMessage
+			.replace(directGifMatch[0], "")
+			.replace(/:\s*$/, "")
+			.trim();
+		return { isGif: true, url, comment };
 	}
 
 	return { isGif: false, content: responseMessage };

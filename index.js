@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { ActivityType } from 'discord.js';
+import { ActivityType, MessageFlags } from 'discord.js';
 import { execute } from './ai.js';  // Import the AI module
 
 import { client } from './components/purpleClient.js'; // set up client object and login
@@ -62,7 +62,7 @@ client.on('messageCreate', async message => {
                         }
                     });
                 } else {
-                    message.reply(r);
+                    message.reply({ content: r, flags: MessageFlags.SuppressEmbeds });
                 }
             })
             .catch(err => {

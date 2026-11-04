@@ -142,7 +142,13 @@ export async function execute(content, msg) {
         const response = await openai.responses.create({
             input: messages,
             reasoning: { effort: "low" },
-            model: "gpt-5.5"
+            model: "gpt-5.5",
+            tools: [
+                {
+                    type: "web_search",
+                    search_context_size: "low"
+                }
+            ]
         });
 
         console.log(`User content: [${msg.author.username}] ${content}`);
@@ -169,6 +175,12 @@ export async function execute(content, msg) {
         if (responseMessage.toLowerCase().startsWith("purple: ")) {
             responseMessage = responseMessage.slice(8, responseMessage.length); // remove this weird thing it does
         }
+
+        // Strip inline web search citations like ([source.com](https://...))
+        responseMessage = responseMessage
+            .replace(/\s*\(\s*(?:\[[^\]]+\]\(https?:\/\/[^\s)]+\)(?:\s*[,;]\s*)?)+\s*\)/g, '')
+            .replace(/\s*\[[^\]]+\]\(https?:\/\/[^\s)]*utm_source=openai[^\s)]*\)/g, '')
+            .trim();
 
 
         // determine whether to respond with a gif or not

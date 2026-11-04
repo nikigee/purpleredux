@@ -1,102 +1,106 @@
-import 'dotenv/config';
-import { ActivityType, MessageFlags } from 'discord.js';
-import { execute } from './ai.js';  // Import the AI module
+import "dotenv/config";
+import { ActivityType, MessageFlags } from "discord.js";
+import { execute } from "./ai.js"; // Import the AI module
 
-import { client } from './components/purpleClient.js'; // set up client object and login
-
+import { client } from "./components/purpleClient.js"; // set up client object and login
 
 // on ready
-client.once('clientReady', () => {
-    console.log('Purple is online!');
+client.once("clientReady", () => {
+	console.log("Purple is online!");
 
-    client.user.setPresence({
-        activities: [{ name: `with your heart`, type: ActivityType.Playing }],
-        status: 'online',
-    });
+	client.user.setPresence({
+		activities: [{ name: `with your heart`, type: ActivityType.Playing }],
+		status: "online",
+	});
 
-    // run cron jobs
-    import('./cron-jobs.js');
+	// run cron jobs
+	import("./cron-jobs.js");
 });
 
-
 // WATCHERS
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand()) return;
+client.on("interactionCreate", async (interaction) => {
+	if (!interaction.isCommand()) return;
 
-    const command = client.commands.get(interaction.commandName);
+	const command = client.commands.get(interaction.commandName);
 
-    if (!command) return;
+	if (!command) return;
 
-    try {
-        await command.execute(interaction);
-    } catch (error) {
-        console.error(error);
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-    }
+	try {
+		await command.execute(interaction);
+	} catch (error) {
+		console.error(error);
+		await interaction.reply({
+			content: "There was an error while executing this command!",
+			ephemeral: true,
+		});
+	}
 });
 
 // Developer only commands
 import { Campaigns } from "./config/campaigns.js"; // grab campaign data
 
-client.on('messageCreate', async message => {
-    if (message.author.bot) return;
-    if (message.mentions.everyone) return;
+client.on("messageCreate", async (message) => {
+	if (message.author.bot) return;
+	if (message.mentions.everyone) return;
 
-    // Check if the bot is mentioned in the message
-    if (message.mentions.has(client.user)) {
-        const request = message.content.replace(`<@${client.user.id}>`, '').trim();
-        console.log(`🤔 Thinking of a response...`);
-        message.channel.sendTyping();
-        const typingInterval = setInterval(() => {
-            message.channel.sendTyping();
-        }, 9000);
+	// Check if the bot is mentioned in the message
+	if (message.mentions.has(client.user)) {
+		const request = message.content
+			.replace(new RegExp(`<@!?${client.user.id}>`, "g"), "")
+			.trim();
+		console.log(`🤔 Thinking of a response...`);
+		message.channel.sendTyping();
+		const typingInterval = setInterval(() => {
+			message.channel.sendTyping();
+		}, 9000);
 
-        // Call the AI function from ai.js
-        execute(request, message)
-            .then(r => {
-                clearInterval(typingInterval);
-                if (r && r.isGif) {
-                    message.reply(r.url).then(() => {
-                        if (r.comment) {
-                            message.channel.send(r.comment);
-                        }
-                    });
-                } else {
-                    message.reply({ content: r, flags: MessageFlags.SuppressEmbeds });
-                }
-            })
-            .catch(err => {
-                clearInterval(typingInterval);
-                console.error("Error executing AI request:", err);
-            });
-    }
+		// Call the AI function from ai.js
+		try {
+			const response = await execute(request, message);
+			if (response.isGif) {
+				await message.reply(response.url);
+				if (response.comment) {
+					await message.channel.send(response.comment);
+				}
+			} else if (response.content) {
+				await message.reply({
+					content: response.content,
+					flags: MessageFlags.SuppressEmbeds,
+				});
+			}
+		} catch (err) {
+			console.error("Error executing AI request:", err);
+		} finally {
+			clearInterval(typingInterval);
+		}
+	}
 
-    const prefix = "!p";
-    if (!message.content.startsWith(prefix)) return;
+	const prefix = "!p";
+	if (!message.content.startsWith(prefix)) return;
 
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
+	const args = message.content.slice(prefix.length).trim().split(/ +/);
+	const command = args.shift().toLowerCase();
 
-    if (!process.env.DEV_ID == message.author.id) {
-        return message.reply('You do not have permission to use this command.');
-    } else {
-        console.log(`[DEV] ${command} command execute | user => ${message.author.username}`);
-    }
+	if (!process.env.DEV_ID == message.author.id) {
+		return message.reply("You do not have permission to use this command.");
+	} else {
+		console.log(
+			`[DEV] ${command} command execute | user => ${message.author.username}`,
+		);
+	}
 
-    if (command === 'run') {
-        if (message.guild)
-            message.delete();
+	if (command === "run") {
+		if (message.guild) message.delete();
 
-        try {
-            message.channel.send(`beep: ${eval(args.join(" "))}`);
-        } catch (err) {
-            message.channel.send(`${err}`);
-        }
-    } else if (command === "embed") {
-        if (message.guild)
-            message.delete();
+		try {
+			message.channel.send(`beep: ${eval(args.join(" "))}`);
+		} catch (err) {
+			message.channel.send(`${err}`);
+		}
+	} else if (command === "embed") {
+		if (message.guild) message.delete();
 
-        message.channel.send({ embeds: [Campaigns[0]] });
-        message.channel.send({ embeds: [Campaigns[1]] });
-    }
+		message.channel.send({ embeds: [Campaigns[0]] });
+		message.channel.send({ embeds: [Campaigns[1]] });
+	}
 });

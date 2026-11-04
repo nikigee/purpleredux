@@ -142,7 +142,7 @@ export async function execute(content, msg) {
         const response = await openai.responses.create({
             input: messages,
             reasoning: { effort: "low" },
-            model: "gpt-5.5",
+            model: "gpt-6.1-terra",
             tools: [
                 {
                     type: "web_search",
